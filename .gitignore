@@ -86,3 +86,4 @@ yolo_checkpoints/
 
 # macOS files
 .DS_Store
+utils/
