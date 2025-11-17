@@ -1,4 +1,3 @@
-# ===== src/distillation/trainer_vit.py =====
 import os
 import time
 import torch
@@ -67,7 +66,6 @@ def main_training_function(rank, world_size, cfg):
     if world_size > 1:
         dist.barrier()
     
-    # --- Model Initialization ---
     teacher_model = HuggingFaceTeacherWrapper(cfg["teacher_hf_id"], token=hf_token).to(device)
     teacher_model.eval()
 
@@ -91,7 +89,6 @@ def main_training_function(rank, world_size, cfg):
         student_model = DDP(student_model, device_ids=[device], find_unused_parameters=True)
         projection_layer = DDP(projection_layer, device_ids=[device])
     
-    # --- Data Loading ---
     transforms = T.Compose([
         T.Resize((640, 640)), T.ToTensor(),
         T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
@@ -105,7 +102,6 @@ def main_training_function(rank, world_size, cfg):
     train_loader = DataLoader(train_dataset, batch_size=cfg["batch_size_per_gpu"], num_workers=cfg["num_workers"], pin_memory=True, sampler=train_sampler, shuffle=(train_sampler is None))
     val_loader = DataLoader(val_dataset, batch_size=cfg["batch_size_per_gpu"], num_workers=cfg["num_workers"], pin_memory=True, sampler=val_sampler)
 
-    # --- Optimizer and Loss ---
     student_module = student_model.module if world_size > 1 else student_model
     projection_module = projection_layer.module if world_size > 1 else projection_layer
     params = list(student_module.backbone.parameters()) + list(student_module.encoder.parameters()) + list(projection_module.parameters())
@@ -117,7 +113,6 @@ def main_training_function(rank, world_size, cfg):
     best_val_loss = float('inf')
     early_stopping_counter = 0
         
-    # --- Training Loop ---
     for epoch in range(cfg["epochs"]):
         if world_size > 1:
             train_sampler.set_epoch(epoch)
